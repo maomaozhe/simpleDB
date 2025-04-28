@@ -24,6 +24,8 @@ public class PageX {
     }
 
     private static void setFSO(byte[] raw, short ofData) {
+        //刷新FSO 0 - 1字节
+        //(Object src, int srcPos, Object dest, int destPos, int length)
         System.arraycopy(Parser.short2Byte(ofData), 0, raw, OF_FREE, OF_DATA);
     }
 
@@ -50,12 +52,17 @@ public class PageX {
         return PageCache.PAGE_SIZE - (int)getFSO(pg.getData());
     }
 
+
+    //要保证FSO指向实际空闲的第一个字节
     // 将raw插入pg中的offset位置，并将pg的offset设置为较大的offset
+    //
     public static void recoverInsert(Page pg, byte[] raw, short offset) {
         pg.setDirty(true);
         System.arraycopy(raw, 0, pg.getData(), offset, raw.length);
 
         short rawFSO = getFSO(pg.getData());
+        //异常关闭之后，offset可能指2540向不那么空闲的？
+        //还是因为异常关闭之后，还未return offset就崩溃了？
         if(rawFSO < offset + raw.length) {
             setFSO(pg.getData(), (short)(offset+raw.length));
         }

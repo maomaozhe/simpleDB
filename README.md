@@ -44,4 +44,3 @@ mvn exec:java -Dexec.mainClass="top.guoziyang.mydb.client.Launcher"
 一个执行示例：
 
 ![](https://s3.bmp.ovh/imgs/2021/11/2749906870276904.png)
-# simpleDB

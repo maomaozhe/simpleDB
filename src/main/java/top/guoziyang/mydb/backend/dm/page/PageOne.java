@@ -22,16 +22,21 @@ public class PageOne {
     }
 
     public static void setVcOpen(Page pg) {
+        //TODO 为什么要setDirty?
+        //因为打开访问了这个数据页，需要写入
         pg.setDirty(true);
         setVcOpen(pg.getData());
     }
 
     private static void setVcOpen(byte[] raw) {
+
+        //打开时写入字节
         System.arraycopy(RandomUtil.randomBytes(LEN_VC), 0, raw, OF_VC, LEN_VC);
     }
 
     public static void setVcClose(Page pg) {
         pg.setDirty(true);
+        //写入
         setVcClose(pg.getData());
     }
 

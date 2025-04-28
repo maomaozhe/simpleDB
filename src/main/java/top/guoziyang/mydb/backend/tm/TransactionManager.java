@@ -19,6 +19,10 @@ public interface TransactionManager {
     boolean isAborted(long xid);
     void close();
 
+
+    //Java基础   接口允许拥有静态方法
+    //无需对象实例化，直接可以通过接口名调用
+
     public static TransactionManagerImpl create(String path) {
         File f = new File(path+TransactionManagerImpl.XID_SUFFIX);
         try {

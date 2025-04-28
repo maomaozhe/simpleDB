@@ -10,15 +10,20 @@ import top.guoziyang.mydb.common.Error;
 /**
  * AbstractCache 实现了一个引用计数策略的缓存
  */
+//抽象方法
 public abstract class AbstractCache<T> {
+
+    //引用缓存的设计 实现
+    //这些成员变量共同维护缓存状态与线程同步，采用手动控制而非高层并发容器
     private HashMap<Long, T> cache;                     // 实际缓存的数据
     private HashMap<Long, Integer> references;          // 元素的引用个数
-    private HashMap<Long, Boolean> getting;             // 正在获取某资源的线程
+    private HashMap<Long, Boolean> getting;             // 标记正在被获取的 key，避免并发重复加载
 
     private int maxResource;                            // 缓存的最大缓存资源数
     private int count = 0;                              // 缓存中元素的个数
-    private Lock lock;
+    private Lock lock;                                  // 互斥锁，保证线程安全，cache getting re....
 
+    //构造方法？
     public AbstractCache(int maxResource) {
         this.maxResource = maxResource;
         cache = new HashMap<>();
@@ -27,11 +32,18 @@ public abstract class AbstractCache<T> {
         lock = new ReentrantLock();
     }
 
+    //get获取缓存资源方法
+    //核心：保证只有一个线程操作修改资源
     protected T get(long key) throws Exception {
         while(true) {
-            lock.lock();
+
+            //获取锁失败会咋样？？
+
+            lock.lock();//获取失败，会在此挂起
+            //阻塞式加锁不会获取锁失败
+            //获取不了锁就sleep
             if(getting.containsKey(key)) {
-                // 请求的资源正在被其他线程获取
+                // 请求的资源正在被其他线程获取，
                 lock.unlock();
                 try {
                     Thread.sleep(1);
@@ -42,15 +54,20 @@ public abstract class AbstractCache<T> {
                 continue;
             }
 
+            //接下来就保证线程安全了
+
             if(cache.containsKey(key)) {
-                // 资源在缓存中，直接返回
+                // 资源在缓存中，直接返回，引用增加
                 T obj = cache.get(key);
+
                 references.put(key, references.get(key) + 1);
                 lock.unlock();
                 return obj;
             }
 
-            // 尝试获取该资源
+            // 资源不在缓存中
+
+            //缓存满了抛出异常
             if(maxResource > 0 && count == maxResource) {
                 lock.unlock();
                 throw Error.CacheFullException;
@@ -63,8 +80,10 @@ public abstract class AbstractCache<T> {
 
         T obj = null;
         try {
+            //磁盘操作读取
             obj = getForCache(key);
         } catch(Exception e) {
+            //放入缓存失败，回撤
             lock.lock();
             count --;
             getting.remove(key);
@@ -73,8 +92,10 @@ public abstract class AbstractCache<T> {
         }
 
         lock.lock();
+        //从磁盘获取之后，线程不再占有资源，移除
         getting.remove(key);
         cache.put(key, obj);
+        //写入缓存
         references.put(key, 1);
         lock.unlock();
         
@@ -88,7 +109,9 @@ public abstract class AbstractCache<T> {
         lock.lock();
         try {
             int ref = references.get(key)-1;
+            //当引用为0的时候才释放
             if(ref == 0) {
+                //磁盘中/缓存中删除
                 T obj = cache.get(key);
                 releaseForCache(obj);
                 references.remove(key);
@@ -120,6 +143,7 @@ public abstract class AbstractCache<T> {
         }
     }
 
+    //TODO 维护两个抽象方法
 
     /**
      * 当资源不在缓存时的获取行为

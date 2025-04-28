@@ -34,7 +34,7 @@ public interface PageCache {
         if(!f.canRead() || !f.canWrite()) {
             Panic.panic(Error.FileCannotRWException);
         }
-
+        //设计文件磁盘操作
         FileChannel fc = null;
         RandomAccessFile raf = null;
         try {

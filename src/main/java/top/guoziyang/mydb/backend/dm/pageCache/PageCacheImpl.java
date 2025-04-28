@@ -42,6 +42,10 @@ public class PageCacheImpl extends AbstractCache<Page> implements PageCache {
         this.pageNumbers = new AtomicInteger((int)length / PAGE_SIZE);
     }
 
+
+    /*
+
+     */
     public int newPage(byte[] initData) {
         int pgno = pageNumbers.incrementAndGet();
         Page pg = new PageImpl(pgno, initData, null);
@@ -70,6 +74,7 @@ public class PageCacheImpl extends AbstractCache<Page> implements PageCache {
             Panic.panic(e);
         }
         fileLock.unlock();
+        //读文件，返回page
         return new PageImpl(pgno, buf.array(), this);
     }
 
